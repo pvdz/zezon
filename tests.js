@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-let parse = require('./json.js');
+let parse = require('./zezon.js');
 
 let testcases = [
   ...['null', 'false', 'true'],
