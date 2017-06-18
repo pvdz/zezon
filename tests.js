@@ -1,26 +1,18 @@
 #!/usr/bin/env node
 
-let parse = require('./zezon.js');
+//let parse = require('./zezon.indirect-jump.js');
+let parseDirect = require('./zezon.direct-jump.js');
+let parseIndirect = require('./zezon.direct-jump.js');
 
 let testcases = [
   ...['null', 'false', 'true'],
 
 
   ...['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
+  ...['-0', '-1', '-2', '-3', '-4', '-5', '-6', '-7', '-8', '-9'],
   ...['10', '21', '32', '43', '54', '65', '76', '87', '98', '19'],
   ...['123', '456', '7890'],
   ...['1234567890'],
-
-  ...['.0', '.1', '.2', '.3', '.4', '.5', '.6', '.7', '.8', '.9'],
-  ...['.10', '.21', '.32', '.43', '.54', '.65', '.76', '.87', '.98', '.19'],
-  ...['.123', '.456', '.7890'],
-  ...['.1234567890'],
-  ...['.0000'],
-
-  ...['1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.', '9.'],
-  ...['10.', '21.', '32.', '43.', '54.', '65.', '76.', '87.', '98.', '19.'],
-  ...['123.', '456.', '7890.'],
-  ...['1234567890.'],
 
   ...['1.2', '2.3', '3.4', '4.5', '5.6', '6.7', '7.8', '8.9', '9.10'],
   ...['10.23', '21.45', '32.56', '43.78', '54.98', '65.91', '76.05', '87.04', '98.54', '19.37'],
@@ -34,26 +26,15 @@ let testcases = [
   ...['123e123', '456e456', '7890e789'],
   ...['1234567890e1234567890'],
 
-  ...['.0E10', '.1E23', '.2E0', '.3E4', '.4E78', '.5E00', '.6E75', '.7E54', '.8E77', '.9E14'],
-  ...['.10E1', '.21E2', '.32E3', '.43E4', '.54E5', '.65E6', '.76E7', '.87E8', '.98E9', '.19E0'],
-
   ...['0e-100', '1e-100'],
   ...['0E-100', '1E-100'],
-  ...['0.e-100', '1.e-100'],
-  ...['0.E-100', '1.E-100'],
   ...['0.1e-100', '1.1e-100'],
   ...['0.1E-100', '1.1E-100'],
-  ...['.0e-100', '.1e-100'],
-  ...['.0E-100', '.1E-100'],
 
   ...['0e+100', '1e+100'],
   ...['0E+100', '1E+100'],
-  ...['0.e+100', '1.e+100'],
-  ...['0.E+100', '1.E+100'],
   ...['0.1e+100', '1.1e+100'],
   ...['0.1E+100', '1.1E+100'],
-  ...['.0e+100', '.1e+100'],
-  ...['.0E+100', '.1E+100'],
 
   ...['"stuff"'],
 
@@ -71,14 +52,15 @@ let testcases = [
 
   ...['{}'],
   ...['{"x":0}', '{"x":1}', '{"x":2}', '{"x":3}', '{"x":4}', '{"x":5}', '{"x":6}', '{"x":7}', '{"x":8}', '{"x":9}'],
-  ...['{"x":0,}', '{"x":1,}', '{"x":2,}', '{"x":3,}', '{"x":4,}', '{"x":5,}', '{"x":6,}', '{"x":7,}', '{"x":8,}', '{"x":9,}'],
   ...['{"x":0,"y":1}', '{"x":1,"y":2}', '{"x":2,"y":3}', '{"x":3,"y":4}', '{"x":4,"y":5}', '{"x":5,"y":6}', '{"x":6,"y":7}', '{"x":7,"y":8}', '{"x":8,"y":9}', '{"x":9,"y":0}'],
-  ...['{"x":0,"y":1,}', '{"x":1,"y":2,}', '{"x":2,"y":3,}', '{"x":3,"y":4,}', '{"x":4,"y":5,}', '{"x":5,"y":6,}', '{"x":6,"y":7,}', '{"x":7,"y":8,}', '{"x":8,"y":9,}', '{"x":9,"y":0,}'],
-  ...['{"x":"y"}', '{"x":"y",}', '{"x":"y", "a":"b"}', '{"x":"y", "a":"b",}'],
+  ...['{"x":"y"}', '{"x":"y", "a":"b"}'],
   ...['{"x":{"x":"y"}}', '{"x":{"x":{"x":{"x":{"x":{"x":{"x":{"x":"y"}}}}}}}}'],
+  ...['{"x":{"x":"y"}, "a": {}}'],
 
   // mix and match
 
+  ...['{"x":[]}'],
+  ...['[{}]'],
   ...['{"x":[{"x":"y"}]}', '[{"x":[{"x":[{"x":[{"x":[{"x":[{"x":[{"x":[{"x":[]}]}]}]}]}]}]}]}]'],
 ];
 
@@ -86,28 +68,73 @@ let testcases = [
 
 let passes = 0;
 let fails = 0;
-testcases.forEach(str => {
-  let completed = one(str);
+[parseDirect, parseIndirect].forEach((parse, pid) => {
+  console.log('### Parser #' + pid);
+  testcases.forEach((str, n) => {
+    let completed = one(str, true, n);
 
-  if (completed) {
-    one(' ' + str);
-    one('\t' + str);
-    one('\n' + str);
-    one('\r' + str);
-    one(str + ' ');
-    one(str + '\t');
-    one(str + '\n');
-    one(str + '\r');
-    // in json a whitespace space is really the same as a whitespace
-    // newline or tab BUT not in a string. so just check for spaces here.
-    one(str.replace(/([":,{}[\]])/g, ' $1'));
-    one(str.replace(/([":,{}[\]])/g, '$1 '));
+    if (completed) {
+      one(' ' + str, false, n + 'a');
+      one('\t' + str, false, n + 'b');
+      one('\n' + str, false, n + 'c');
+      one('\r' + str, false, n + 'd');
+      one(str + ' ', false, n + 'e');
+      one(str + '\t', false, n + 'f');
+      one(str + '\n', false, n + 'g');
+      one(str + '\r', false, n + 'h');
+      // in json a whitespace space is really the same as a whitespace
+      // newline or tab BUT not in a string. so just check for spaces here.
+      one(str.replace(/([":,{}[\]])/g, ' $1'), false, n + 'i');
+      one(str.replace(/([":,{}[\]])/g, '$1 '), false, n + 'j');
+    }
+  });
+  function one(str, orig, testid) {
+    //if (testid != '125') return true;
+
+    let into = [];
+    let completed;
+    let crash = true;
+    try {
+      completed = parse(str, into);
+      crash = false;
+    } catch(e) {
+    }
+
+    if (crash) {
+      ++fails;
+      console.log(testid, 'CRASH:', toPrint(str));
+    } else if (!completed) {
+      ++fails;
+      console.log(testid, 'FAIL:', toPrint(str), ', so far:', JSON.stringify(into));
+    } else if (orig && str !== JSON.stringify(into[0]) && str !== '-0') {
+      if (JSON.stringify(JSON.parse(str)) === JSON.stringify(into[0])) {
+        ++passes;
+        console.log(testid, 'WARN:', toPrint(str), into, [str, JSON.stringify(into[0])]);
+      } else {
+        ++fails;
+        console.log(testid, 'MISS:', toPrint(str), into, [str, JSON.stringify(into[0])]);
+      }
+    } else {
+      ++passes;
+      console.log(testid, 'PASS:', toPrint(str));
+    }
+
+    return completed;
   }
 });
-function one(str) {
-  let completed = parse(str);
-  console.log((completed ? (++passes, 'PASS') : (++fails, 'FAIL')) + ': ' + str);
-  return completed;
+
+function toPrint(s) {
+  return s
+    .replace(/[^\u0000-\u00ff\u2028]/g, function (s) {
+      return '\\u' + s.charCodeAt(0).toString(16).toUpperCase();
+    })
+    .replace(/[\xa0\x0b\x0c]/g, function (s) {
+      return '\\x' + s.charCodeAt(0).toString(16).toUpperCase();
+    })
+    .replace(/\t/g, '\\t')
+    .replace(/\u2028/g, '\u21a9')
+    .replace(/\u000a/g, '\u21b5')
+    .replace(/\u000d/g, '\\r');
 }
 
 console.log('###\nPassed: ' + passes + ', Failed: ' + fails);
